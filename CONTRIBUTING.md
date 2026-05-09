@@ -32,13 +32,16 @@ No statistical tuning runs in v1. This is observation-driven, not pre-launch tes
 
 ## Adding a new persona
 
-1. Create `experts/<slug>.md` following the format in `docs/specs/2026-05-09-sme-review-design.md` Section 4 (Identity & framing → typically misses → Specialties → Rubric → reasoning → Out of scope).
-2. Identity ≤ 3 sentences. No personality or biographical detail.
-3. 5-8 curated specialty entries. Each with Lens + 3-5 "Especially watches for" bullets.
-4. Out-of-scope items must be explicit; prevents drift into adjacent personas.
-5. If the persona introduces a cross-cutting concern, update the catalog table in `operations.md`.
-6. Add an entry to `experts/README.md`.
-7. Update the curated-domain list in `operations.md` ("Specialty parsing & recognition" → "Curated catalog").
+1. Create `experts/<slug>.md`. Use any existing persona (e.g., `experts/security.md`) as the canonical format reference. The 6 required H2 sections are:
+   - `Identity & framing` (≤3 sentences; core mental model and one-sentence "lens"; no personality, biographical detail, or affect)
+   - `What this domain typically misses in early designs` (5-8 concrete failure-mode bullets)
+   - `Specialties — sub-domain lenses` (5-8 curated specialties, each with Lens + 3-5 "Especially watches for" bullets)
+   - `Rubric — what to inspect, in order` (ordered list of inspection items)
+   - `What rigorous reasoning looks like in this domain` (mapped to the 5 evidence shapes from `output-template.md`: file path with line range, executable check, calculation, threat scenario, external citation)
+   - `Out of scope for this domain in design review` (explicit exclusions with adjacent-domain pointers like `(→ <other-domain>)`)
+2. If the persona introduces a cross-cutting concern (TLS, rate limiting, idempotency, schema migrations, observability, auth boundaries), update the catalog table in `operations.md` → "Cross-cutting concerns catalog".
+3. Add an entry to `experts/README.md`.
+4. Update the curated-domain list in `operations.md` → "Specialty parsing & recognition" → "Curated catalog".
 
 ## Adding a specialty to an existing persona
 
