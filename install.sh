@@ -5,11 +5,15 @@ CATALOG_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SKILL_NAME="sme-review"
 SKILL_SRC="$CATALOG_DIR/$SKILL_NAME"
 SKILL_DEST="$HOME/.claude/skills/$SKILL_NAME"
-MODE="${1:-copy}"
 
+MODE="copy"
 FORCE=0
 for arg in "$@"; do
-  if [ "$arg" = "--force" ]; then FORCE=1; fi
+  case "$arg" in
+    --force)        FORCE=1 ;;
+    copy|symlink)   MODE="$arg" ;;
+    *)              echo "Unknown argument: $arg. Use 'copy' or 'symlink' (with optional --force)." >&2; exit 1 ;;
+  esac
 done
 
 if [ ! -d "$SKILL_SRC" ]; then echo "Error: $SKILL_SRC not found." >&2; exit 1; fi
@@ -45,7 +49,6 @@ fi
 case "$MODE" in
   symlink) ln -s "$SKILL_SRC" "$SKILL_DEST"; echo "Symlinked $SKILL_DEST → $SKILL_SRC" ;;
   copy)    cp -R "$SKILL_SRC" "$SKILL_DEST"; echo "Copied $SKILL_SRC → $SKILL_DEST" ;;
-  *)       echo "Unknown mode: $MODE. Use 'copy' or 'symlink'." >&2; exit 1 ;;
 esac
 
 echo "Installed. Verify: ls -la $SKILL_DEST"
