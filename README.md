@@ -163,4 +163,4 @@ rm -rf ~/.claude/skills/sme-review
 
 ## License
 
-[Add your license here.]
+MIT — see [LICENSE](LICENSE).
