@@ -3,7 +3,7 @@
 A Claude Code skill that turns the **staff-engineer review** into something you can invoke mid-conversation. Run rigorous domain-expert critique on a design section *while you're still iterating* — before you commit to building it.
 
 ```
-You:    "Here's my proposed auth design: [section pasted]. Get a network
+You:    "Here's my proposed auth design: [section pasted]. Get a web-app
          security SME review of it."
 
 Claude: [Internally: dispatches a security expert subagent, then pushes
@@ -30,7 +30,7 @@ Claude: [Internally: dispatches a security expert subagent, then pushes
            Storage Cheat Sheet. Per-user CSPRNG salt.
          - Status: validated.
 
-         [...10 more findings, then a fully revised section]
+         [...13 more findings, then a fully revised section]
 ```
 
 ## What it does
@@ -48,7 +48,7 @@ Output for every review:
 ## Install
 
 ```sh
-git clone <this-repo> sme-review
+git clone https://github.com/neverrend/sme-review.git
 cd sme-review
 ./install.sh
 ```
@@ -154,6 +154,10 @@ See `KNOWN-ISSUES.md` for the v0.1 test-harness gaps (deferred to v0.2).
 | `tests/claude-code/` | Deterministic bash + `claude -p` + grep tests |
 | `tests/scenarios/` | Manual QA scenarios (loop behavior, convergence pathologies, state persistence, extraction, edge cases) |
 | `tests/test-sections/` | Input fixtures (well-formed, flawed-with-known-issues, ambiguous, tangled) |
+| `tests/runbook.md` | How to run deterministic tests and walk manual scenarios |
+| `CONTRIBUTING.md` | Persona / specialty authoring guide and cap-tuning notes |
+| `KNOWN-ISSUES.md` | v0.1 test-harness gaps deferred to v0.2 |
+| `LICENSE` | MIT |
 
 ## Uninstall
 
