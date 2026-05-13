@@ -1,6 +1,6 @@
 # Experts catalog
 
-Twelve curated personas + one freeform template. The orchestrator loads exactly one expert file per skill invocation based on the parsed `(domain, specialty)` (see `../operations.md` → "Specialty parsing & recognition").
+Thirteen curated personas + one freeform template. The orchestrator loads exactly one expert file per skill invocation based on the parsed `(domain, specialty)` (see `../operations.md` → "Specialty parsing & recognition").
 
 ## Curated personas (`<slug>.md`)
 
@@ -16,6 +16,7 @@ Twelve curated personas + one freeform template. The orchestrator loads exactly 
 - `reliability` — SLOs, blast radius, graceful degradation
 - `performance` — capacity, latency budgets, hot paths
 - `testing` — testability, seams, observability hooks
+- `skill-design` — skills, slash commands, MCP tool descriptions; activation, composition, supply chain, evolution
 
 ## Freeform fallback
 
