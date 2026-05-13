@@ -147,7 +147,7 @@ See `KNOWN-ISSUES.md` for the v0.1 test-harness gaps (deferred to v0.2).
 | `SKILL.md` | Skill frontmatter and 7-step Procedure (point-at-files; ≤400 words) |
 | `operations.md` | Orchestration mechanics: state paths, hashing, concurrency, extraction, parsing, debate loop, pushback rubric, convergence test, failure handling, continuation reader, cross-cutting catalog |
 | `output-template.md` | Synthesis format, status semantics, evidence shapes, truncation, special-case templates, frontmatter schema, compaction tiers, hand-off variants |
-| `experts/<domain>.md` | 12 curated personas |
+| `experts/<domain>.md` | 13 curated personas |
 | `experts/_freeform-template.md` | Freeform fallback with `{SPECIALTY}` substitution |
 | `experts/README.md` | Catalog index |
 | `install.sh` | Deployment script (copy/symlink, --force, iCloud guard, writability probe) |

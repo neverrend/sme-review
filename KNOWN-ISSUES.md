@@ -38,7 +38,7 @@ Verified:
 - ✅ Personal-skills loader auto-discovers `~/.claude/skills/sme-review/` (Task 1 smoketest passed: `LOADER_OK_<token>`).
 - ✅ install.sh (copy mode default, --force, idempotent symlink check, iCloud guard, writability probe).
 - ✅ Skill core files (SKILL.md, operations.md 11 sections, output-template.md).
-- ✅ 12 curated personas + freeform template + experts/README.md.
+- ✅ 13 curated personas + freeform template + experts/README.md.
 - ✅ User-facing README, contributor CONTRIBUTING.md.
 - ✅ 5 test-section fixtures, 19 manual scenarios, runbook.
 
