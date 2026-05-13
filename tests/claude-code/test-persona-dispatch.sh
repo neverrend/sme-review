@@ -18,4 +18,10 @@ R4=$(claude_invoke "Section: 'OAuth with refresh tokens'. Do a SOC analyst revie
 assert_not_contains "UNKNOWN_SPECIALTY" "$R4" "dispatch: SOC analyst → freeform path, recognized"
 assert_contains "specializing in soc-analyst" "$R4" "dispatch: freeform substitutes specialty slug"
 
+R5=$(claude_invoke "Section: '## Skill body — checklist items. - [ ] Ensure correctness. - [ ] Be thorough.' Get a skill-design review.")
+assert_contains "Reviewed as skill-design expert" "$R5" "dispatch: skill-design, no specialty → general persona"
+
+R6=$(claude_invoke "Section: 'frontmatter description: helps with database queries.' Get a discoverability-and-triggers skill-design review.")
+assert_contains "Reviewed as skill-design expert specializing in discoverability-and-triggers" "$R6" "dispatch: skill-design + discoverability-and-triggers specialty"
+
 summarize
