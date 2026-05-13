@@ -112,8 +112,8 @@ The orchestrator parses the user's invocation into `(domain, specialty)`.
 
 ### Curated catalog
 
-The 12 curated domains (one persona file each, at `experts/<slug>.md`):
-`backend`, `api-design`, `frontend`, `prompting`, `agent-systems`, `security`, `data-modeling`, `infrastructure`, `distributed-systems`, `reliability`, `performance`, `testing`.
+The 13 curated domains (one persona file each, at `experts/<slug>.md`):
+`backend`, `api-design`, `frontend`, `prompting`, `agent-systems`, `security`, `data-modeling`, `infrastructure`, `distributed-systems`, `reliability`, `performance`, `testing`, `skill-design`.
 
 ### Parsing rules
 
@@ -290,5 +290,8 @@ Some concerns legitimately appear under multiple specialties. Persona files dupl
 | Schema migrations | data-modeling, backend/request-path, reliability |
 | Observability hooks | reliability, infrastructure, distributed-systems |
 | Auth boundaries | security/web-app, security/identity-and-access, api-design |
+| Instruction conflict / boundary | prompting/prompt-design, skill-design/superpowers-skill-design |
+| Description-vs-behavior drift | prompting/prompt-versioning, skill-design/skill-evolution |
+| Prompt-injection surfaces | security/web-app, prompting, agent-systems, skill-design/skill-supply-chain-and-injection |
 
 Cross-references between persona files are forbidden (per `anthropic-best-practices.md` lines 354-381 — multi-level references load unreliably). Duplicate the bullet; document the duplication here.
