@@ -25,6 +25,19 @@ When the skill's main agent attempts to read `operations.md`, `output-template.m
 
 **Fix (v0.2):** test harness needs to invoke `claude -p` with a permission flag that pre-grants reads to the skill directory. Investigate `--permission-mode acceptEdits`, `--allowed-tools Read`, or whichever mechanism Claude Code exposes for this. May also be solvable by running tests in a Claude Code wrapper that inherits the user's permission state.
 
+## 3. Expert subagents on Sonnet/Haiku hallucinate "kept" bullets in round-2+ consolidated lists
+
+When an expert subagent is asked to produce a consolidated final bullet list (round 2 of pushback, after the main agent surfaces volume-cap or restructuring challenges), Sonnet- and Haiku-backed experts can label fabricated bullets as **"kept"** from the original draft — silently regressing on prior commitments.
+
+**Documented incident:** 2026-05-13, skill-design persona Batch-3 review (agent-systems expert, sonnet model). Round 2 final list included bullets like "Implicit version coupling between caller skill and callee skill" and "Error propagation policy unspecified" tagged as **kept**, but neither was in the original draft. The expert also silently dropped termination, cost ceilings, and cycles from Specialty 1 despite committing to deliver those in their Batch-2 review. The orchestrator (main agent) caught this during reconciliation, but only because of explicit cross-checking against the prior commitments — the pushback rubric did not flag it.
+
+**Mitigations applied in v0.2:**
+- Added bullet-tracking rule to Universal rules block (`operations.md` → Universal rules): "each kept item MUST be quoted from the original draft; do not fabricate."
+- Added rubric item 5 to the Pushback rubric: "Bullet-tracking against draft" — main agent spot-checks `kept` labels by quoting back.
+- Added model requirement to Universal rules block: experts MUST run on Opus or the most capable model available.
+
+**Open question (v0.3):** does the spot-check rubric item suffice, or should there be a structural diff between the draft and the expert's "kept" claims? Hard to automate inside a markdown debate loop.
+
 ## What this means for v0.1
 
 - The **skill itself works** in interactive Claude Code sessions where the user can approve permission prompts. Verified: persona dispatch routes correctly (`Reviewed as backend expert specializing in postgres-perf` observed from headless harness for one test that bypassed the permission issue).

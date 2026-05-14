@@ -183,8 +183,10 @@ Constant across all expert dispatches:
 - **Severity calibration:** Critical / High / Medium / Minor. Critical only if design is unimplementable or unsafe; High if significant rework; Medium if real concern with known fix; Minor if a nit. Not everything is Critical.
 - **Reasoning rigor:** every finding must include domain-specific reasoning per the persona's "what rigorous reasoning looks like" rubric. `verified by:` must follow one of the 5 evidence shapes (see output-template.md).
 - **Pushback handling (rounds 2+):** concede valid challenges; defend with evidence where right; distinguish "I was wrong" from "you misread me"; never re-raise a conceded issue.
+- **Bullet-tracking discipline (rounds 2+):** when producing a consolidated final list of findings/bullets, each "kept" item MUST be quoted from the original draft. Do NOT generate new bullets and label them "kept" — that is a tracking failure equivalent to hallucination. If you find yourself wanting to add new content, mark it `new` or `replaced`, never `kept`.
 - **Scope discipline:** stay in your domain + specialty lens; out-of-scope wandering is itself a pushback target.
 - **Anti-flattery:** no "great design overall" preambles. Get to the issues.
+- **Model requirement:** expert subagents MUST be dispatched on Opus (or the most capable model available). Sonnet / Haiku exhibit measurable bullet-tracking drift in rounds 2+ (e.g., re-fabricating "kept" bullets that were not in the draft). Documented incident: 2026-05-13 skill-design Batch-3 review, agent-systems expert, round 2.
 
 ### Anti-bias instruction (main agent)
 
@@ -212,12 +214,13 @@ Abort as `Review degenerate; consider invoking a different specialty or the free
 
 ## Pushback rubric
 
-The 4-item rubric the main agent applies to each expert response:
+The 5-item rubric the main agent applies to each expert response:
 
 1. **Reasoning rigor** — Are assumptions explicitly stated and validated? Are findings backed by domain-specific reasoning per the persona's "what rigorous reasoning looks like"? Are recommendations concrete enough to action (per the 5 evidence shapes)?
 2. **Missed/scope balance** — What relevant angles were missed given the section's content? Did the expert wander out of their domain+specialty lens?
 3. **Severity calibration** — Are findings calibrated by impact, or is everything Critical?
 4. **Pushback handling** (rounds 2+) — Did the expert concede valid challenges, defend with evidence, distinguish "I was wrong" from "you misread me"?
+5. **Bullet-tracking against draft** (rounds 2+, when expert produces a consolidated final list) — Does every item marked `kept` actually appear in the original draft text? Spot-check by quoting back. A `kept` label on a fabricated bullet is a silent regression — fail the round and require correction.
 
 The pushback message itself: a structured challenge list that names each rubric concern, the specific finding it applies to, and what would address it.
 

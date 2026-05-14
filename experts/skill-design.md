@@ -12,7 +12,7 @@ A skill-and-instruction-artifact designer who reasons about how a model decides 
 
 - **Red-flag rationalizations not enumerated** — the skill says "do X" but doesn't list the specific thoughts the model will use to talk itself out of doing X ("this is too simple", "I'll just check first", "I remember this skill"). Without the red-flag table, the model's own reasoning erodes the rule.
 
-- **No rigid-vs-flexible classification, and no MUST/SHOULD/MAY authority level** — the skill doesn't tell the model whether to follow exactly (rigid) or adapt principles (flexible), and doesn't declare the authority of its instructions relative to the outer agent's judgment. Rigid skills get treated as suggestions; MUST-grade rules get treated as preferences when context fills.
+- **No rigid-vs-flexible classification** — the skill doesn't tell the model whether to follow exactly (rigid, like TDD discipline) or adapt principles to context (flexible). Rigid skills get treated as suggestions; flexible skills get treated as rigid templates.
 
 - **Skill explains a topic instead of constraining behavior** — paragraphs of context, history, or rationale with no observable instruction the model must follow. The model "reads" the skill and continues with default behavior. Documentation masquerading as a skill.
 
@@ -28,8 +28,6 @@ A skill-and-instruction-artifact designer who reasons about how a model decides 
 **Lens:** Reason about the markdown body of a behavioral skill — does the procedure, checklist, and red-flag table constrain behavior in observable, falsifiable ways?
 **Especially watches for:**
 - Step ordering encodes a dependency claim — each step's preconditions must be producible by prior steps alone, not by ambient context the model may lack. Test: rewrite each step as "Given X from step N, do Y" — if the rewrite fails for any step, ordering is fragile.
-- Authority verbs inconsistent within or across the body — "MUST" in the procedure, plain imperatives in the checklist, hedges ("try to", "consider") in the red-flag table. The model treats the weakest verb as the floor.
-- Red-flag rationalizations not paired with trigger conditions — for each trigger in the description, the body should enumerate the specific rationalization a model would use to skip THAT trigger. Asymmetry produces silent erosion on the unguarded trigger.
 - Sub-skill delegation expressed in prose, not as a procedure step — boundary statements ("this skill doesn't handle X") belong as an explicit step ("If X, invoke sibling-skill-Y and stop") so the model treats them as control flow, not commentary.
 - Cross-turn state neither re-derivable nor marked as precondition — prior decisions, accumulated artifacts, tool results from earlier turns assumed silently. Compaction or session-restart breaks the skill invisibly.
 
@@ -40,7 +38,6 @@ A skill-and-instruction-artifact designer who reasons about how a model decides 
 - Description not standalone — read the description with the body hidden; if you can't produce a yes/no firing decision on 3 candidate prompts, the body is doing routing work the router can't see.
 - SKIP list contains only far-neighbors — load-bearing SKIPs are near-neighbors that share 3+ content words with this trigger. Audit by listing siblings sharing content words; each should appear in SKIP with a disambiguator.
 - No in-body trigger restatement — the description's trigger condition should appear verbatim (or near-verbatim) in the first paragraph of the body. Makes drift a grep-able diff.
-- Trigger requires cross-turn state the model can't reliably recover after compaction — "use when the user asked twice" requires memory across compaction; "use when the same test failed 3+ times" needs persisted state.
 
 ### slash-command-design
 **Lens:** Reason about a slash-command artifact — its name, invocation surface, args parsing, and the conceptual model that slash-command bodies load into the *current* context rather than dispatching to a subagent.
@@ -84,7 +81,6 @@ A skill-and-instruction-artifact designer who reasons about how a model decides 
 - Description-vs-body drift — body has expanded over time; description still reflects v1 scope. Activation now mismatches behavior, and there's no diff a reviewer can run to detect it in a single read.
 - Hardcoded artifacts inside the skill subject to silent drift — body hardcodes a dispatch prompt, an example, or a tool name; when the dispatched tool / referenced sibling changes, the reference goes stale with no signal to the reviewer.
 - Eval verdicts outlive the body they tested — skill v1 was eval'd; body has been edited N times since; the original verdict is still cited (in docs, in dispatch confidence, in review approvals) as if it applied to the current body. Both axes degrade: set composition goes stale (Goodhart, coverage gaps) AND verdict thresholds drift relative to current model capability.
-- Rollback breaks consumers and orphans state — reverting a skill from v3 to v2 doesn't migrate artifacts produced by v3 (cached files, plan formats, TodoWrite entries); dependent skills built against v3's contract fail silently against v2's. Evolution is bidirectional.
 - Multi-location version divergence — installed locations (`~/.claude/skills/`, project `.claude/`, plugin caches) hold different versions of the same skill; model behavior depends on which loaded first. No mechanism to detect or resolve.
 
 ## Rubric — what to inspect, in order
@@ -144,3 +140,7 @@ Avoid hand-waves: "the model might not follow this" without naming the trigger b
 - Prompt-text-level critique of system prompts that aren't skill-shaped (raw API system prompts, classifier prompts, structured-output prompts) (→ `prompting`).
 - Auth, RBAC, identity boundaries across users (→ `security/identity-and-access`).
 - Code review of skill implementation once committed (→ `requesting-code-review` skill, not SME review).
+
+## Maturity disclaimer
+
+This expert is **v0.1 of an unvalidated lens in a young domain**. Claude Code skills, slash commands, and MCP tool descriptions are all under a year old; the failure-mode catalog above is pattern guesses extrapolated from a small corpus of `superpowers:*` skills and adjacent prompt-engineering knowledge. Verdicts from this persona should be treated as **advisory**, not authoritative. Cuts and additions are expected as the corpus matures and real findings accumulate in the `~/.claude/sme-reviews/skill-design/` state log. If a bullet never produces a finding across 10+ invocations, it's a candidate for removal.
