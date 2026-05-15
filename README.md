@@ -78,7 +78,7 @@ The skill auto-triggers when your prompt asks for a domain-expert critique of **
 - Brainstorming a design from scratch → use `brainstorming`.
 - Open-ended questions without an articulated section → it'll prompt you to articulate first.
 
-## Curated experts (12)
+## Curated experts (13)
 
 Each is a complete subagent specification — a domain lens, failure-mode catalog, rubric, and reasoning standard.
 
@@ -96,6 +96,7 @@ Each is a complete subagent specification — a domain lens, failure-mode catalo
 | `reliability` | SLOs, blast radius, graceful degradation, recovery |
 | `performance` | Capacity math, latency budgets, hot-path analysis |
 | `testing` | Testability, seams, observability hooks, fakeable boundaries |
+| `skill-design` | Skill discovery surface, behavior contract, trigger-boundary stress-testing |
 
 Plus a **freeform fallback** for specialties not in the catalog (e.g., "SOC analyst", "compiler design"). The fallback applies a `{SPECIALTY}` substitution and a recognition gate that refuses unrecognized expertise rather than confabulating.
 
@@ -142,9 +143,9 @@ Real numbers will land after Batch 1 of the telemetry run (`docs/sme-review-tele
 - **One section per invocation.** For multi-section reviews, invoke once per section. The orchestrator suggests follow-up specialties for cross-cutting concerns (e.g., a security review of an architecture proposal might suggest a follow-up `infrastructure` or `data-modeling` review).
 - **Single-user concurrency.** State writes are last-write-wins. Firing the same `(section, domain, specialty)` triple twice in parallel may clobber; cross-invocation continuity across *different* `(domain, specialty)` pairs on the same section still works via the continuation reader.
 - **Pre-implementation design only.** For code review of committed work, use `requesting-code-review`.
-- **Personal install.** v0.1 deploys to `~/.claude/skills/sme-review/` via `install.sh`. Plugin packaging (one-click marketplace install) is on the roadmap.
+- **Personal install.** Deploys to `~/.claude/skills/sme-review/` via `install.sh`. Plugin packaging (one-click marketplace install) is on the roadmap.
 
-See `KNOWN-ISSUES.md` for the v0.1 test-harness gaps (deferred to v0.2).
+See `KNOWN-ISSUES.md` for tracked issues and open questions across versions.
 
 ## Files
 
@@ -162,7 +163,7 @@ See `KNOWN-ISSUES.md` for the v0.1 test-harness gaps (deferred to v0.2).
 | `tests/test-sections/` | Input fixtures (well-formed, flawed-with-known-issues, ambiguous, tangled) |
 | `tests/runbook.md` | How to run deterministic tests and walk manual scenarios |
 | `CONTRIBUTING.md` | Persona / specialty authoring guide and cap-tuning notes |
-| `KNOWN-ISSUES.md` | v0.1 test-harness gaps deferred to v0.2 |
+| `KNOWN-ISSUES.md` | Tracked issues and open questions across versions |
 | `LICENSE` | MIT |
 
 ## Uninstall
