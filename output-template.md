@@ -10,6 +10,8 @@ Final synthesis format the orchestrator renders to the user at terminal state. H
 > **Reviewed as** <domain> expert specializing in <specialty>.
 > **Rounds:** <N> of <max> — <converged | soft-cap-exceeded | hard-ceiling>
 > **Status:** All findings resolved | <M> findings unresolved — see Disputed below
+> **Model:** <model-id used for the expert subagent>
+> **Transcripts:** ~/.claude/sme-reviews/<section-slug>/<domain>/<specialty-slug>.transcripts.md
 
 #### Validated assumptions
 - <assumption> — verified by: <one of the 5 evidence shapes below>
@@ -99,6 +101,8 @@ Triggered when the main agent's rubric pass on round 1 produces zero substantive
 
 > **Reviewed as** <domain> expert specializing in <specialty>.
 > **Convergence:** 1 round (no substantive challenges).
+> **Model:** <model-id>
+> **Transcripts:** ~/.claude/sme-reviews/<section-slug>/<domain>/<specialty-slug>.transcripts.md
 
 #### Verdict
 No substantive issues found. The section is well-supported per a <domain> + <specialty> review.
@@ -176,6 +180,6 @@ No menu, no multiple-choice. Two options max.
 - H3/H4 max in conversation rendering (no H1).
 - Severity scale: Critical / High / Medium / **Minor** (4-tier).
 - Severity labels formatted as `**[Critical] <title>**` (bold + bracketed).
-- The opening blockquote (`> **Reviewed as** ...`) is the preamble metadata block; nothing else lives in it.
+- The opening blockquote (`> **Reviewed as** ...`) is the preamble metadata block; it carries Reviewed-as, Rounds, Status, Model, and Transcripts lines and nothing else. The Transcripts line is always emitted (so the user can audit the debate); the Model line is always emitted (so model-tier drift attribution is possible per `KNOWN-ISSUES.md` item 3).
 - Disputed and Considered-and-resolved sections omitted entirely if empty.
 - Meta-recommendations section omitted entirely if empty.

@@ -34,9 +34,10 @@ When an expert subagent is asked to produce a consolidated final bullet list (ro
 **Mitigations applied in v0.2:**
 - Added bullet-tracking rule to Universal rules block (`operations.md` → Universal rules): "each kept item MUST be quoted from the original draft; do not fabricate."
 - Added rubric item 5 to the Pushback rubric: "Bullet-tracking against draft" — main agent spot-checks `kept` labels by quoting back.
-- Added model requirement to Universal rules block: experts MUST run on Opus or the most capable model available.
 
-**Open question (v0.3):** does the spot-check rubric item suffice, or should there be a structural diff between the draft and the expert's "kept" claims? Hard to automate inside a markdown debate loop.
+**Model requirement removed in v0.2:** an earlier draft mandated Opus for expert subagents. That mandate has been dropped — papering over loop fragility with model capability hides the real question of whether the rubric is load-bearing. Instead, the model used for each run is recorded in the telemetry log (see `docs/sme-review-telemetry/results.md`) so drift incidents can be attributed and the rubric tuned with evidence.
+
+**Open question (v0.3):** does the spot-check rubric item suffice across model tiers, or does drift recur on Sonnet/Haiku once the mandate is gone? Telemetry from Batches 1–4 will produce the data.
 
 ## What this means for v0.1
 

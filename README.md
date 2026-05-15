@@ -115,10 +115,10 @@ When you invoke the skill, it:
 
 1. **Extracts** the design section from recent conversation. Emits a one-line preview before proceeding (so you can correct mis-extraction).
 2. **Parses** `(domain, specialty)` from your invocation.
-3. **Acquires a lockfile** at `<cwd>/.claude/sme-reviews/<section-slug>/<domain>/.<specialty>.lock` — prevents concurrent invocations on the same target from clobbering each other.
+3. **Resolves state path** at `~/.claude/sme-reviews/<section-slug>/<domain>/<specialty-slug>.md`. Last-write-wins; no lockfile.
 4. **Cache check.** If a prior review for `(section, domain, specialty)` exists and the section content hash matches, returns the cached result with a `force re-review` discoverability prompt.
 5. **Loads the persona** — `experts/<domain>.md` for curated, `experts/_freeform-template.md` with `{SPECIALTY}` substitution for freeform.
-6. **Runs the debate loop** — soft cap 4 rounds, hard ceiling 6. Each round: dispatch expert subagent → main agent applies the 4-item pushback rubric → expert responds → check convergence. State written at end of every round (atomic rename).
+6. **Runs the debate loop** — soft cap 4 rounds, hard ceiling 6. Each round: dispatch expert subagent → main agent applies the 5-item pushback rubric → expert responds → check convergence. State written at end of every round.
 7. **Synthesizes the output** per the format above.
 
 The loop's design is in [`operations.md`](operations.md). The output template is in [`output-template.md`](output-template.md).
@@ -131,10 +131,16 @@ The loop's design is in [`operations.md`](operations.md). The output template is
 
 **Adjusting the round cap.** Default soft cap 4, hard ceiling 6. To revisit, see `CONTRIBUTING.md` → "Cap tuning."
 
+## Cost per invocation
+
+A typical run is 4 rounds × (expert subagent dispatch + main-agent pushback) plus the round-1 setup and final synthesis. Pre-telemetry estimate: roughly **$0.50–$3 per invocation** depending on section length and the model used. A long, contested section that hits the soft cap on Opus can land at the upper end; a short section that converges in 1–2 rounds on a smaller model is well under a dollar.
+
+Real numbers will land after Batch 1 of the telemetry run (`docs/sme-review-telemetry/`) and this estimate will be updated. Until then: invoke deliberately, not reflexively. If you're running this 5+ times in a planning session, you're paying real money.
+
 ## Scope (v1)
 
 - **One section per invocation.** For multi-section reviews, invoke once per section. The orchestrator suggests follow-up specialties for cross-cutting concerns (e.g., a security review of an architecture proposal might suggest a follow-up `infrastructure` or `data-modeling` review).
-- **Single-user concurrency.** Concurrent invocations on the same `(section, domain, specialty)` are rejected via lockfile (not merged).
+- **Single-user concurrency.** State writes are last-write-wins. Firing the same `(section, domain, specialty)` triple twice in parallel may clobber; cross-invocation continuity across *different* `(domain, specialty)` pairs on the same section still works via the continuation reader.
 - **Pre-implementation design only.** For code review of committed work, use `requesting-code-review`.
 - **Personal install.** v0.1 deploys to `~/.claude/skills/sme-review/` via `install.sh`. Plugin packaging (one-click marketplace install) is on the roadmap.
 

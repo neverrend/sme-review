@@ -2,7 +2,7 @@
 
 **Setup:** In a fresh Claude Code conversation:
 1. Paste the contents of `tests/test-sections/well-formed-backend.md` as an assistant turn.
-2. Run the invocation below and let it complete. A state file is now written at `<cwd>/.claude/sme-reviews/order-ingestion-service/backend/backend.md` (or the equivalent specialty slug if one was named). Note the `timestamp` value from the state file's YAML frontmatter and the `section-content-hash`.
+2. Run the invocation below and let it complete. A state file is now written at `~/.claude/sme-reviews/order-ingestion-service/backend/backend.md` (or the equivalent specialty slug if one was named). Note the `timestamp` value from the state file's YAML frontmatter and the `section-content-hash`.
 3. Without modifying the section text, run the same invocation again in the same conversation (paste the same section text again, same user prompt).
 
 **Invocation:** `Get a backend expert review of that section.` (run this twice, with the same section text pasted before each invocation)

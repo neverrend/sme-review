@@ -4,36 +4,11 @@ This file collects the orchestration mechanics referenced from `SKILL.md`. Each 
 
 ## State path resolution
 
-The skill writes per-(section, domain, specialty) state files. Resolution follows this order:
+State files are written under `~/.claude/sme-reviews/<section-slug>/<domain>/<specialty-slug>.md`. Single fixed path; no project-local discovery, no fallback, no write probe.
 
-```text
-project_markers = [.git, package.json, pyproject.toml, go.mod, Cargo.toml,
-                   Gemfile, composer.json, pom.xml, build.gradle, Makefile, .claude/]
+Writes follow **last-write-wins** semantics. Concurrent invocations on the same `(section-slug, domain, specialty-slug)` may clobber each other — acceptable for the single-user scope of v0.1. Cross-invocation continuity across different `(domain, specialty)` pairs on the same section still works via the continuation reader (see below); collisions only occur when the user fires the *same* triple twice in parallel.
 
-function is_project_local(cwd):
-    if cwd == "/" or cwd == $HOME or cwd is under $TMPDIR: return false
-    if any project_marker exists in cwd or ancestors up to $HOME: return true
-    if .claude/ exists in cwd: return true
-    return false
-
-function can_write(path):
-    create+delete <path>/.write-probe-<random>
-    return success
-
-function resolve_state_path(cwd):
-    primary   = cwd_state if is_project_local(cwd) else home_state
-    if can_write(primary): return primary
-    secondary = home_state if primary == cwd_state else None
-    if secondary and can_write(secondary): return secondary, fallback=true
-    return null, abort=true
-```
-
-`cwd_state` is `<cwd>/.claude/sme-reviews/<section-slug>/<domain>/<specialty-slug>.md`.
-`home_state` is `~/.claude/sme-reviews/<section-slug>/<domain>/<specialty-slug>.md`.
-
-When `fallback=true`, surface in output preamble: `_Project state dir not writable; falling back to ~/.claude/sme-reviews._`
-
-When `abort=true`, surface to user: `State persistence unavailable in both project and home dirs. Continue without persistence (cross-invocation continuity disabled), or abort?` Wait for explicit user choice.
+If the directory cannot be created or the write fails, surface to user: `State persistence unavailable at ~/.claude/sme-reviews. Continue without persistence (cross-invocation continuity disabled), or abort?` Wait for explicit user choice.
 
 ## Section content hashing
 
@@ -46,19 +21,6 @@ Compute `section-content-hash` (used for cache-hit detection) by:
 5. SHA-256 of the result.
 
 Reproducible. Bytewise hash of the *normalized* form so editor-driven whitespace drift doesn't trigger spurious cache misses.
-
-## Concurrency control
-
-For each `(section-slug, domain, specialty-slug)`, acquire a lockfile before running the loop:
-
-- Lockfile path: `<state-dir>/<section-slug>/<domain>/.<specialty-slug>.lock`
-- Acquisition: `O_CREAT | O_EXCL` open. Atomic — one writer wins.
-- Stale sweep: a lockfile older than 30 minutes is treated as abandoned and removed before re-attempting acquisition.
-- If lock held by another live invocation: refuse with `Another SME review on this specialty is in progress; retry in a moment, or override with 'force re-review'.`
-- Lockfile content: PID + start timestamp (for diagnostics; not used for liveness).
-- Release on terminal write of state file (success or abort).
-
-State writes are atomic: write to `<dir>/.<specialty-slug>.md.tmp.<random>` in the same directory, then `rename(2)` to the target. Same-FS by construction; no cross-mount issues.
 
 ## Section extraction
 
@@ -176,6 +138,40 @@ Round N:
 
 State file written **at end of every round**, not end of loop. `convergence-status` defaults to `incomplete`; flips on the final write.
 
+A **transcripts sidecar** is written alongside the state file at end of every round (see Transcripts sidecar below). The state file holds the synthesized output; the sidecar holds verbatim per-round expert response and main-agent pushback so the user can audit whether the debate was substantive.
+
+### Round-2+ dispatch construction
+
+When constructing the dispatch prompt for round N≥2, the prior round's outputs MUST be embedded verbatim, not summarized:
+
+- **Round N-1 expert response:** paste in full, no compression. Includes the full Validated assumptions block (each assumption verbatim, including its `verified by:` clause) and the full Findings block (Issue / Reasoning / Recommendation per finding, verbatim).
+- **Round N-1 pushback:** paste in full, no compression.
+
+Abbreviated or summarized prior-round content in the dispatch prompt causes false-`kept` labels in the subagent's output (the subagent quotes back the orchestrator's summary, not the true prior text — discovered in Batch 1 R04 telemetry where R2 VAs were labeled `kept` against a compressed R2-dispatch summary, not the verbatim R1 text). The verbatim requirement applies only to the immediately-preceding round (N-1); rounds N-2 and earlier remain 5-bullet compactions per "Retention between rounds" below.
+
+#### Pre-dispatch checklist (orchestrator, R2+ rounds)
+
+Before invoking the subagent for any round N≥2, the orchestrator MUST output a verifiable checklist as plain text in the conversation:
+
+```
+R<N> dispatch checklist:
+[ ] R<N-1> expert response embedded verbatim (Validated assumptions: full text per entry; Findings: full Issue/Reasoning/Recommendation per finding)
+[ ] R<N-1> pushback embedded verbatim
+[ ] No "[see prior]", "[full text preserved]", or summary placeholders in the dispatch prompt
+[ ] R<N-1> finding titles enumerated for cross-check by the expert: <comma-separated list>
+[ ] Withdrawn-block requirement included in R2+ output contract (any R<N-1> finding not in R<N> consolidated list must appear in Withdrawn with a one-sentence reason)
+```
+
+Each checkbox must be ticked (`[x]`) before the subagent invocation, with the dispatched-prompt text following. This is a structural enforcement mechanism, not an internalized norm — a checklist the orchestrator outputs is auditable against the dispatched prompt; a discipline reminder in the universal rules block is not.
+
+**Why this is structural:** Batch 2 telemetry (B2-R01, R03, R05, R07) showed that the verbatim-paste rule above, while well-stated, did not survive context pressure across multiple runs and multi-round runs. The rule is fundamentally a "compare your text to the prior text" rule and cannot work if the prior text isn't in the dispatch. The checklist makes the omission visible at dispatch time rather than at convergence-assessment time.
+
+**The cost:** ~10-15 tokens of orchestrator output per R2+ dispatch. The benefit: bullet-tracking discipline becomes verifiable from the conversation transcript without reading the dispatched-prompt body.
+
+### Round-1 dispatch construction
+
+Include the "especially watches for" list for the persona's specialty verbatim in the dispatch prompt. Add a specific instruction: *"Cross-check against the 'especially watches for' list before submitting. For each item, either (a) cover it with a finding, or (b) note explicitly in your reasoning that the design doesn't require it (validate-by-absence). Do not silently skip a watches-for item."* This was load-bearing in Batch 1 — multiple runs surfaced missed angles caught only via R2 pushback against the persona's own list (rubric item 2 + persona cross-check). Front-loading the cross-check into R1 reduces round count.
+
 ### Universal rules block
 
 Constant across all expert dispatches:
@@ -183,10 +179,9 @@ Constant across all expert dispatches:
 - **Severity calibration:** Critical / High / Medium / Minor. Critical only if design is unimplementable or unsafe; High if significant rework; Medium if real concern with known fix; Minor if a nit. Not everything is Critical.
 - **Reasoning rigor:** every finding must include domain-specific reasoning per the persona's "what rigorous reasoning looks like" rubric. `verified by:` must follow one of the 5 evidence shapes (see output-template.md).
 - **Pushback handling (rounds 2+):** concede valid challenges; defend with evidence where right; distinguish "I was wrong" from "you misread me"; never re-raise a conceded issue.
-- **Bullet-tracking discipline (rounds 2+):** when producing a consolidated final list of findings/bullets, each "kept" item MUST be quoted from the original draft. Do NOT generate new bullets and label them "kept" — that is a tracking failure equivalent to hallucination. If you find yourself wanting to add new content, mark it `new` or `replaced`, never `kept`.
+- **Bullet-tracking discipline (rounds 2+):** when producing a consolidated final list, each `kept` item MUST be character-identical to the prior draft's bullet text. Any of the following → label `refined`, NOT `kept`: a paraphrase, an added cross-reference, an appended `Note:`, a status-tag change, a tightened recommendation clause, or any added/removed word. Do NOT use placeholders like `[Full text preserved from Round 1]` — re-emit the verbatim text or use a different label. A `kept` label on non-character-identical content is the documented drift this discipline targets, and rubric item 5 will catch it. If a bullet's substance is unchanged but you're tempted to tighten its wording, the label is `refined` — the substance survival is what matters, not the label name.
 - **Scope discipline:** stay in your domain + specialty lens; out-of-scope wandering is itself a pushback target.
 - **Anti-flattery:** no "great design overall" preambles. Get to the issues.
-- **Model requirement:** expert subagents MUST be dispatched on Opus (or the most capable model available). Sonnet / Haiku exhibit measurable bullet-tracking drift in rounds 2+ (e.g., re-fabricating "kept" bullets that were not in the draft). Documented incident: 2026-05-13 skill-design Batch-3 review, agent-systems expert, round 2.
 
 ### Anti-bias instruction (main agent)
 
@@ -212,13 +207,108 @@ If main agent's rubric pass on round 1 produces zero substantive challenges, ter
 
 Abort as `Review degenerate; consider invoking a different specialty or the freeform path with a more focused expertise string.` if round-1 subagent output has fewer than 3 findings OR all findings have severity Minor.
 
+## Transcripts sidecar
+
+The state file holds the rendered output. The transcripts sidecar holds the raw debate so the user can verify the loop wasn't two instances of Claude nodding at each other.
+
+### Path
+
+`~/.claude/sme-reviews/<section-slug>/<domain>/<specialty-slug>.transcripts.md`
+
+Sibling to the state file. Same slug derivation, different suffix.
+
+### Write timing
+
+Append-only, written at the end of every round alongside the state file. Never truncated, never compacted. Cheap on disk; the audit value depends on raw fidelity.
+
+### Format
+
+```markdown
+# Transcripts — <section-heading>
+
+> Domain: <domain> · Specialty: <specialty> · Started: <ISO-8601>
+
+## Round 1
+
+### Expert response (verbatim)
+
+<full subagent output, no compaction>
+
+### Main-agent pushback (verbatim)
+
+<full pushback message, no compaction>
+
+## Round 2
+
+### Expert response (verbatim)
+...
+```
+
+Each round appended as a new H2 block. Round-1 zero-challenge runs still get a Round 1 block with the expert response and a `(no pushback — round-1 zero-challenge)` placeholder under pushback. Degenerate-review aborts still get a Round 1 expert block plus an `(aborted: degenerate)` line.
+
+### Footer surface
+
+The rendered output emits a `> **Transcripts:** <path>` line in the preamble blockquote so the user can open the file (see `output-template.md` rendering rules).
+
+### `show transcripts` re-invocation
+
+The orchestrator recognizes natural-language asks for the transcripts:
+
+- `show transcripts`
+- `show me the transcripts`
+- `show me the debate`
+- `show me the rounds`
+- `show transcripts for <section-hint>`
+
+Resolution:
+
+1. If the invocation names a section hint, match against existing transcripts files under `~/.claude/sme-reviews/` by section-slug substring.
+2. Else, default to the most recent SME review in this Claude Code session (the orchestrator tracks the last `(section, domain, specialty)` it ran).
+3. If multiple matches and no hint, list candidates: `Multiple recent reviews — pick one: <list with paths>.`
+4. If no match: `No SME review transcripts found. Run a review first.`
+
+On match, dump the transcripts file inline (or, if very long, the user-facing message says `Transcripts at <path> — N rounds, ~M lines. Show inline (paste full file) or open externally?`).
+
+This is a no-section command; it does not run the debate loop and does not write state.
+
+## List specialties
+
+A no-section command. The orchestrator recognizes:
+
+- `list specialties`
+- `what specialties are available`
+- `what experts can you bring`
+- `show me the specialties`
+- `which experts do you have`
+
+On match, build the catalog dynamically (avoids drift between this file and the persona files):
+
+1. List the 13 curated domain slugs (see Curated catalog above).
+2. For each domain, read `experts/<domain>.md` and extract every `### <specialty-slug>` heading under the `## Specialties` section.
+3. Render as a grouped list, one domain per H4, specialties as bullets.
+4. Append a short note: `Plus a freeform fallback for specialties not in the catalog (e.g., "SOC analyst", "compiler frontend") — the orchestrator runs a recognition gate before dispatching freeform.`
+
+Render format:
+
+```markdown
+#### Available SME experts
+
+**backend** — request-path, postgres-perf, kafka-streaming, batch-etl, idempotency-and-retries, caching-tiers, background-jobs
+**api-design** — versioning, idempotency, ...
+[...all 13...]
+
+_Freeform fallback available for specialties not in the catalog. Invoke as e.g. "Get a SOC analyst review of this." — recognition gate refuses unrecognized expertise rather than confabulating._
+```
+
+This is a no-section command; it does not run the debate loop and does not write state. If the user follows up with a section + specialty, the standard procedure runs against that input.
+
 ## Pushback rubric
 
 The 5-item rubric the main agent applies to each expert response:
 
 1. **Reasoning rigor** — Are assumptions explicitly stated and validated? Are findings backed by domain-specific reasoning per the persona's "what rigorous reasoning looks like"? Are recommendations concrete enough to action (per the 5 evidence shapes)?
 2. **Missed/scope balance** — What relevant angles were missed given the section's content? Did the expert wander out of their domain+specialty lens?
-3. **Severity calibration** — Are findings calibrated by impact, or is everything Critical?
+3. **Severity calibration** — Are findings calibrated by impact? Apply the probe: for any **Critical**, the design must be unimplementable or actively unsafe under realistic conditions — not "wrong about an edge case" or "missing a defense in depth." For any **High**, the consequence should materialize today under the design's stated conditions, not require a triggering event (CVE, market change, future feature, hypothetical adversary) that has not occurred. Contingency-driven defects often calibrate to Medium. Probe shape to issue in pushback: *"the consequence requires <event X>; the design works without it today; is severity reflecting blast radius today or blast radius under hypothetical future events?"* This probe was load-bearing in Batch 1 telemetry — surfaced 4 of 7 calibration corrections.
 4. **Pushback handling** (rounds 2+) — Did the expert concede valid challenges, defend with evidence, distinguish "I was wrong" from "you misread me"?
 5. **Bullet-tracking against draft** (rounds 2+, when expert produces a consolidated final list) — Does every item marked `kept` actually appear in the original draft text? Spot-check by quoting back. A `kept` label on a fabricated bullet is a silent regression — fail the round and require correction.
 
@@ -246,7 +336,7 @@ Both conditions must hold to declare converged.
 - **Subagent error (deterministic — schema validation, persistent auth):** no retry; surface actual error: `SME review failed: <reason>. Retry, or rephrase the invocation.`
 - **Malformed output:** defined as missing required output-contract field (per output-template.md), non-parseable structure, or refusal-to-respond. One corrective retry that includes (a) what was missing/wrong, (b) the format spec re-stated. Second failure → abort with error.
 - **Valid refusal** ("I cannot review, outside my domain"): not malformed. Treat as orchestrator-level routing failure (the recognition step should have caught it); surface to user with explanation. Do not retry.
-- **State write failure:** try `<cwd>/.claude/sme-reviews/...` first; auto-fallback to `~/.claude/sme-reviews/...`; abort with user choice if both fail.
+- **State write failure:** surface to user with the path that failed; offer continue-without-persistence vs abort. No automatic fallback.
 - **Main agent's pushback formulation returns empty when findings demand it:** treat as round-1 zero-challenge (terminate as converged with ≥3 validated assumptions; otherwise abort as Review degenerate).
 
 ## Continuation reader (cross-invocation)

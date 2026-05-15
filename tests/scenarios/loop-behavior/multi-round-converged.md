@@ -1,6 +1,6 @@
 # Scenario: Multi-Round Converged
 
-**Setup:** Paste the contents of `tests/test-sections/well-formed-backend.md` as an assistant turn in a fresh Claude Code conversation. No prior state files exist for this section. Confirm the cwd has a `.git` directory or `package.json` so the state path resolves to the project-local `<cwd>/.claude/sme-reviews/` directory.
+**Setup:** Paste the contents of `tests/test-sections/well-formed-backend.md` as an assistant turn in a fresh Claude Code conversation. No prior state files exist for this section under `~/.claude/sme-reviews/`.
 
 **Invocation:** `Get a backend expert review of that section.`
 
